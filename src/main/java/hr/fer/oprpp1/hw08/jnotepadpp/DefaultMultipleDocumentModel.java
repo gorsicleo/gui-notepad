@@ -1,5 +1,7 @@
 package hr.fer.oprpp1.hw08.jnotepadpp;
 
+import java.awt.event.ActionEvent;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,6 +13,9 @@ import java.util.stream.Collectors;
 
 import javax.swing.JComponent;
 import javax.swing.JTabbedPane;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 
 @SuppressWarnings("serial")
 public class DefaultMultipleDocumentModel extends JTabbedPane implements MultipleDocumentModel {
@@ -24,6 +29,17 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 		super();
 		this.documents = new ArrayList<SingleDocumentModel>();
 		listeners = new ArrayList<MultipleDocumentListener>();
+		this.addChangeListener(new ChangeListener() {
+			
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
+				SingleDocumentModel previous = currentDocument;
+				currentDocument = documents.get(tabbedPane.getSelectedIndex());
+				listeners.forEach(listener -> listener.currentDocumentChanged(previous, currentDocument));
+				
+			}
+		});
 	}
 
 	@Override
@@ -39,6 +55,8 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 	@Override
 	public SingleDocumentModel createNewDocument() {
 		SingleDocumentModel newDoc = new DefaultSingleDocumentModel(null, "");
+		documents.add(newDoc);
+		currentDocument = newDoc;
 		listeners.forEach(listener -> listener.documentAdded(newDoc));
 		return newDoc;
 	}
@@ -53,6 +71,8 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 		try {
 			String text = new String(Files.readAllBytes(path),StandardCharsets.UTF_8);
 			SingleDocumentModel newDoc = new DefaultSingleDocumentModel(path, text);
+			documents.add(newDoc);
+			currentDocument = newDoc;
 			listeners.forEach(listener -> listener.documentAdded(newDoc));
 			return newDoc;
 		} catch (IOException e) {
@@ -73,6 +93,7 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 	public void closeDocument(SingleDocumentModel model) {
 		listeners.forEach(listener -> listener.documentRemoved(model));
 		documents.remove(model);
+		currentDocument = null;
 	}
 
 	@Override
@@ -95,6 +116,7 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 	public SingleDocumentModel getDocument(int index) {
 		return documents.get(index);
 	}
+	
 
 	@Override
 	public SingleDocumentModel findForPath(Path path) {
