@@ -38,7 +38,9 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 
 	@Override
 	public SingleDocumentModel createNewDocument() {
-		return new DefaultSingleDocumentModel(null, "");
+		SingleDocumentModel newDoc = new DefaultSingleDocumentModel(null, "");
+		listeners.forEach(listener -> listener.documentAdded(newDoc));
+		return newDoc;
 	}
 
 	@Override
@@ -50,7 +52,9 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 	public SingleDocumentModel loadDocument(Path path) {
 		try {
 			String text = new String(Files.readAllBytes(path),StandardCharsets.UTF_8);
-			return new DefaultSingleDocumentModel(path, text);
+			SingleDocumentModel newDoc = new DefaultSingleDocumentModel(path, text);
+			listeners.forEach(listener -> listener.documentAdded(newDoc));
+			return newDoc;
 		} catch (IOException e) {
 			throw new IllegalArgumentException(CANNOT_OPEN_FILE_ERROR);
 		}
@@ -67,6 +71,7 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 
 	@Override
 	public void closeDocument(SingleDocumentModel model) {
+		listeners.forEach(listener -> listener.documentRemoved(model));
 		documents.remove(model);
 	}
 
@@ -106,5 +111,6 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 	public int getIndexOfDocument(SingleDocumentModel doc) {
 		return documents.indexOf(doc);
 	}
+	
 
 }
